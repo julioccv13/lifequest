@@ -1,0 +1,77 @@
+{
+  "conversations": [
+    {
+      "id": "demo-convo-1",
+      "title": "Opening session",
+      "created_at": 1725187200000
+    }
+  ],
+  "messages": [
+    {
+      "id": "demo-msg-1",
+      "conversation_id": "demo-convo-1",
+      "role": "user",
+      "content": "I feel stuck at work but energized by learning design.",
+      "created_at": 1725230400000
+    },
+    {
+      "id": "demo-msg-2",
+      "conversation_id": "demo-convo-1",
+      "role": "assistant",
+      "content": "Let's map your Vision phase. What kind of design work pulls you in most?",
+      "created_at": 1725230460000
+    }
+  ],
+  "game_state_daily": [
+    {
+      "date": "2024-09-02",
+      "phase": "Vision",
+      "character_json": "{\"character_assessment\":{\"strengths\":[\"curiosity\"],\"weaknesses\":[\"overthinking\"],\"motivations\":[\"impactful work\"],\"possible_directions\":[\"UX design\"]},\"phase_evidence\":\"Feels stuck but energized by design.\",\"negative_vision\":\"Staying in unfulfilling work.\"}",
+      "stats_json": "{\"clarity\":6,\"energy\":7,\"discipline\":5,\"courage\":6,\"focus\":5,\"connection\":4}",
+      "main_quest_json": "{\"title\":\"Pivot toward UX\",\"why\":\"Align work with creativity\"}",
+      "side_quests_json": "[{\"title\":\"Portfolio draft\",\"domain\":\"learning\",\"why\":\"Build momentum\"}]",
+      "rules_json": "[\"No late-night work\",\"Focus blocks daily\"]",
+      "rewards_json": "[\"Weekend hike\"]",
+      "tutorial_json": "{\"week_1\":[\"Audit skills\"],\"week_2\":[\"Mock project\"]}",
+      "feedback_json": "{\"feedback_system\":{\"daily_checkin\":[\"Mood\",\"Energy\"],\"weekly_review\":[\"Quest progress\"]},\"follow_up_questions\":[\"What design projects excite you most?\"]}",
+      "quest_log_json": "{\"progress_notes\":\"Early exploration\",\"completed_quests\":[],\"blocked_quests\":[]}",
+      "narrative_summary": "You are stepping into Vision with a clear pull toward UX design.",
+      "updated_at": 1725234000000
+    }
+  ],
+  "quests": [
+    {
+      "id": "demo-quest-1",
+      "type": "side",
+      "title": "Portfolio draft",
+      "description": "Create one case study outline.",
+      "domain": "learning",
+      "difficulty": 2,
+      "xp": 50,
+      "status": "active",
+      "steps_json": "[{\"title\":\"Pick a project\",\"done\":false}]",
+      "created_at": 1725220000000,
+      "updated_at": 1725234000000
+    }
+  ],
+  "checkins": [
+    {
+      "id": "demo-checkin-1",
+      "date": "2024-09-02",
+      "mood": 7,
+      "energy": 7,
+      "focus": 5,
+      "notes": "Good momentum."
+    }
+  ],
+  "settings": {
+    "id": 1,
+    "coach_prompt": "You are LifeQuest AI: a strategic life coach who gamifies the user's real life into an immersive RPG-style journey.",
+    "extraction_prompt": "You are a data extractor for the LifeQuest app.",
+    "schema_json": "{\"date\":\"YYYY-MM-DD\",\"phase\":\"Limbo|Vision|Flow|Resistance|null\"}",
+    "llm_enabled": 0,
+    "llm_endpoint": null,
+    "llm_api_key": null,
+    "timezone": "UTC"
+  }
+}
