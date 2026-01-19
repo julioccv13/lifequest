@@ -98,16 +98,14 @@ class GenerateStateFromChat {
         }
       }
 
-      if (checkin != null) {
-        await _checkinRepository.upsert(
-          date: dateKey,
-          mood: _toInt(checkin['mood']),
-          energy: _toInt(checkin['energy']),
-          focus: _toInt(checkin['focus']),
-          notes: checkin['notes']?.toString(),
-        );
-      }
-
+      await _checkinRepository.upsert(
+        date: dateKey,
+        mood: _toInt(checkin['mood']),
+        energy: _toInt(checkin['energy']),
+        focus: _toInt(checkin['focus']),
+        notes: checkin['notes']?.toString(),
+      );
+    
       return dailyState;
     }
 
