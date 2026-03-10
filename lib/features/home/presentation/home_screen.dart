@@ -16,18 +16,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
 
-  final List<Widget> _screens = const [
-    ChatScreen(),
-    DashboardScreen(),
-    QuestLogScreen(),
-    InsightsScreen(),
-    SettingsScreen(),
+  final List<WidgetBuilder> _screenBuilders = [
+    (_) => const ChatScreen(),
+    (_) => const DashboardScreen(),
+    (_) => const QuestLogScreen(),
+    (_) => const InsightsScreen(),
+    (_) => const SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_index],
+      body: _screenBuilders[_index](context),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) {
