@@ -23,6 +23,8 @@ Project documentation is maintained outside the repo in the canonical docs folde
 
 - `/home/julio/workspace/personal/docs/lifequest/documentos/overview.md`
 - `/home/julio/workspace/personal/docs/lifequest/documentos/repo-architecture.md`
+- `/home/julio/workspace/personal/docs/lifequest/documentos/current-status.md`
+- `/home/julio/workspace/personal/docs/lifequest/documentos/work-done.md`
 - `/home/julio/workspace/personal/docs/lifequest/documentos/setup.md`
 
 Task logs live in:
