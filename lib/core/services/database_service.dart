@@ -126,4 +126,10 @@ class DatabaseService {
       await txn.delete('settings');
     });
   }
+
+  Future<void> close() async {
+    if (_db == null) return;
+    await _db!.close();
+    _db = null;
+  }
 }

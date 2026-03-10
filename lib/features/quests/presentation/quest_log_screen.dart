@@ -24,6 +24,7 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
 
   Future<void> _loadQuests() async {
     final quests = await _questRepository.getAll();
+    if (!mounted) return;
     setState(() {
       _quests = quests;
       _loading = false;
@@ -172,65 +173,75 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _quests.length,
-              itemBuilder: (context, index) {
-                final quest = _quests[index];
-                return Card(
+          : _quests.isEmpty
+              ? const Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                quest.title,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _createOrEditQuest(quest: quest),
-                              icon: const Icon(Icons.edit),
-                            ),
-                            IconButton(
-                              onPressed: () => _toggleStatus(quest),
-                              icon: Icon(
-                                quest.status == 'completed'
-                                    ? Icons.undo
-                                    : Icons.check_circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text('${quest.type} - ${quest.domain}'),
-                        Text('Difficulty ${quest.difficulty} - XP ${quest.xp}'),
-                        if (quest.description.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(quest.description),
-                          ),
-                        const SizedBox(height: 8),
-                        ...quest.steps.asMap().entries.map(
-                              (entry) => CheckboxListTile(
-                                value: entry.value.done,
-                                onChanged: (_) => _toggleStep(quest, entry.key),
-                                title: Text(entry.value.title),
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                      ],
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'No quests yet. Add one to start tracking progress.',
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                );
-              },
-            ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _quests.length,
+                  itemBuilder: (context, index) {
+                    final quest = _quests[index];
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    quest.title,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => _createOrEditQuest(quest: quest),
+                                  icon: const Icon(Icons.edit),
+                                ),
+                                IconButton(
+                                  onPressed: () => _toggleStatus(quest),
+                                  icon: Icon(
+                                    quest.status == 'completed'
+                                        ? Icons.undo
+                                        : Icons.check_circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text('${quest.type} - ${quest.domain}'),
+                            Text('Difficulty ${quest.difficulty} - XP ${quest.xp}'),
+                            if (quest.description.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(quest.description),
+                              ),
+                            const SizedBox(height: 8),
+                            ...quest.steps.asMap().entries.map(
+                                  (entry) => CheckboxListTile(
+                                    value: entry.value.done,
+                                    onChanged: (_) => _toggleStep(quest, entry.key),
+                                    title: Text(entry.value.title),
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _createOrEditQuest(),
         child: const Icon(Icons.add),

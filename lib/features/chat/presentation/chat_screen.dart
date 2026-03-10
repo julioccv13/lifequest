@@ -28,6 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadConversations() async {
     final conversations = await _chatRepository.getConversations();
+    if (!mounted) return;
     setState(() {
       _conversations = conversations;
       _loading = false;
@@ -70,18 +71,28 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(title: const Text('Chat')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _conversations.length,
-              itemBuilder: (context, index) {
-                final conversation = _conversations[index];
-                return ListTile(
-                  title: Text(conversation.title ?? 'Conversation'),
-                  subtitle: Text(conversation.createdAt.toLocal().toString()),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openConversation(conversation),
-                );
-              },
-            ),
+          : _conversations.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'No conversations yet. Create one to start chatting with LifeQuest AI.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _conversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = _conversations[index];
+                    return ListTile(
+                      title: Text(conversation.title ?? 'Conversation'),
+                      subtitle: Text(conversation.createdAt.toLocal().toString()),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openConversation(conversation),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await showDialog<void>(

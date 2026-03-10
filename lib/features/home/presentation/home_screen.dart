@@ -4,6 +4,7 @@ import '../../chat/presentation/chat_screen.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../insights/presentation/insights_screen.dart';
 import '../../quests/presentation/quest_log_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
     DashboardScreen(),
     QuestLogScreen(),
     InsightsScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -38,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.flag), label: 'Quest Log'),
           NavigationDestination(icon: Icon(Icons.insights), label: 'Insights'),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );

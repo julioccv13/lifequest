@@ -52,6 +52,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         await _chatRepository.getMessagesForConversation(widget.conversationId);
     final latestState = await _gameStateRepository.getLatest();
     final activeQuests = await _questRepository.getActive();
+    if (!mounted) return;
     setState(() {
       _messages = messages;
       _loading = false;
@@ -187,7 +188,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

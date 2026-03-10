@@ -43,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final settings = await _settingsRepository.getSettings();
+    if (!mounted) return;
     _coachPromptController.text = settings.coachPrompt;
     _extractPromptController.text = settings.extractionPrompt;
     _schemaController.text = const JsonEncoder.withIndent('  ')

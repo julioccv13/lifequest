@@ -39,6 +39,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     final quests = await _questRepository.getAll();
     final state = await _gameStateRepository.getLatest();
     final settings = await _settingsRepository.getSettings();
+    if (!mounted) return;
     setState(() {
       _checkins = checkins;
       _quests = quests;

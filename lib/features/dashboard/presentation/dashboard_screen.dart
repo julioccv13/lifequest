@@ -40,6 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadState() async {
     final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final state = await _gameStateRepository.getByDate(date);
+    if (!mounted) return;
     setState(() {
       _state = state;
       _loading = false;
