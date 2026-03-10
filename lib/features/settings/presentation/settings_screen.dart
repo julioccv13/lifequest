@@ -5,13 +5,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../../data/models/app_settings.dart';
-import '../../data/repositories/settings_repository.dart';
-import '../../data/services/database_service.dart';
-import '../web/file_download_stub.dart'
-    if (dart.library.html) '../web/file_download_web.dart';
-import '../web/local_file_io_stub.dart'
-    if (dart.library.io) '../web/local_file_io_io.dart';
+import '../../../core/platform/file_download_stub.dart'
+    if (dart.library.html) '../../../core/platform/file_download_web.dart';
+import '../../../core/platform/local_file_io_stub.dart'
+    if (dart.library.io) '../../../core/platform/local_file_io_io.dart';
+import '../../../core/services/database_service.dart';
+import '../../../data/models/app_settings.dart';
+import '../../../data/repositories/settings_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

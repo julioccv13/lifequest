@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../models/game_state_daily.dart';
-import '../services/database_service.dart';
+import '../../core/services/database_service.dart';
 
 class GameStateRepository {
   GameStateRepository({DatabaseService? databaseService})

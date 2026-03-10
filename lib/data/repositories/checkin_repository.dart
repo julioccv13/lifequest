@@ -2,7 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/checkin.dart';
-import '../services/database_service.dart';
+import '../../core/services/database_service.dart';
 
 class CheckinRepository {
   CheckinRepository({DatabaseService? databaseService})

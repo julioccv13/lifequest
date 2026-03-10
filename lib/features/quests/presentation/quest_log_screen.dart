@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../data/models/quest.dart';
-import '../../data/repositories/quest_repository.dart';
+import '../../../data/models/quest.dart';
+import '../../../data/repositories/quest_repository.dart';
 
 class QuestLogScreen extends StatefulWidget {
   const QuestLogScreen({super.key});

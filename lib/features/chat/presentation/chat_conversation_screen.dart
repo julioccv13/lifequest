@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../data/models/message.dart';
-import '../../data/repositories/chat_repository.dart';
-import '../../data/repositories/game_state_repository.dart';
-import '../../data/repositories/quest_repository.dart';
-import '../../data/repositories/settings_repository.dart';
-import '../../data/services/llm_service.dart';
-import '../../domain/usecases/generate_state_from_chat.dart';
-import 'settings_screen.dart';
+import '../../../data/models/message.dart';
+import '../../../data/repositories/chat_repository.dart';
+import '../../../data/repositories/game_state_repository.dart';
+import '../../../data/repositories/quest_repository.dart';
+import '../../../data/repositories/settings_repository.dart';
+import '../../../core/services/llm_service.dart';
+import '../../../domain/usecases/generate_state_from_chat.dart';
+import '../../settings/presentation/settings_screen.dart';
 
 class ChatConversationScreen extends StatefulWidget {
   const ChatConversationScreen({

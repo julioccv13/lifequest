@@ -10,7 +10,7 @@ import '../../data/repositories/checkin_repository.dart';
 import '../../data/repositories/game_state_repository.dart';
 import '../../data/repositories/quest_repository.dart';
 import '../../data/repositories/settings_repository.dart';
-import '../../data/services/llm_service.dart';
+import '../../core/services/llm_service.dart';
 
 class GenerateStateFromChat {
   GenerateStateFromChat({

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'chat_screen.dart';
-import 'quest_log_screen.dart';
-import 'insights_screen.dart';
-import 'dashboard_screen.dart';
+import '../../chat/presentation/chat_screen.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../insights/presentation/insights_screen.dart';
+import '../../quests/presentation/quest_log_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

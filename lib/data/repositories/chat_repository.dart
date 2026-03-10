@@ -2,7 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
-import '../services/database_service.dart';
+import '../../core/services/database_service.dart';
 
 class ChatRepository {
   ChatRepository({DatabaseService? databaseService})

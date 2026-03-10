@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../data/models/conversation.dart';
-import '../../data/repositories/chat_repository.dart';
-import '../../data/repositories/settings_repository.dart';
+
+import '../../../data/models/conversation.dart';
+import '../../../data/repositories/chat_repository.dart';
+import '../../../data/repositories/settings_repository.dart';
 import 'chat_conversation_screen.dart';
 
 class ChatScreen extends StatefulWidget {

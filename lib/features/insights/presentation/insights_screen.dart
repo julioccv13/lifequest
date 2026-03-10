@@ -1,13 +1,13 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../data/models/checkin.dart';
-import '../../data/models/quest.dart';
-import '../../data/models/game_state_daily.dart';
-import '../../data/repositories/checkin_repository.dart';
-import '../../data/repositories/game_state_repository.dart';
-import '../../data/repositories/quest_repository.dart';
-import '../../data/repositories/settings_repository.dart';
+import '../../../data/models/checkin.dart';
+import '../../../data/models/game_state_daily.dart';
+import '../../../data/models/quest.dart';
+import '../../../data/repositories/checkin_repository.dart';
+import '../../../data/repositories/game_state_repository.dart';
+import '../../../data/repositories/quest_repository.dart';
+import '../../../data/repositories/settings_repository.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'ui/screens/home_screen.dart';
+import '../features/home/presentation/home_screen.dart';
 
 class LifeQuestApp extends StatelessWidget {
   const LifeQuestApp({super.key});

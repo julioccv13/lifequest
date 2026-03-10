@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/models/game_state_daily.dart';
-import '../../data/repositories/game_state_repository.dart';
+import '../../../data/models/game_state_daily.dart';
+import '../../../data/repositories/game_state_repository.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});

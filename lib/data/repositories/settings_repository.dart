@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_settings.dart';
-import '../services/database_service.dart';
+import '../../core/services/database_service.dart';
 
 class SettingsRepository {
   SettingsRepository({DatabaseService? databaseService})
