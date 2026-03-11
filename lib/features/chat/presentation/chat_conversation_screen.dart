@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/message.dart';
 import '../../../data/repositories/chat_repository.dart';
 import '../../../data/repositories/game_state_repository.dart';
@@ -14,22 +15,44 @@ class ChatConversationScreen extends StatefulWidget {
     super.key,
     required this.conversationId,
     required this.title,
-  });
+    ChatRepository? chatRepository,
+    SettingsRepository? settingsRepository,
+    GameStateRepository? gameStateRepository,
+    QuestRepository? questRepository,
+    GenerateStateFromChat? generateState,
+    LlmService? llmService,
+  })  : _chatRepository = chatRepository,
+        _settingsRepository = settingsRepository,
+        _gameStateRepository = gameStateRepository,
+        _questRepository = questRepository,
+        _generateState = generateState,
+        _llmService = llmService;
 
   final String conversationId;
   final String title;
+  final ChatRepository? _chatRepository;
+  final SettingsRepository? _settingsRepository;
+  final GameStateRepository? _gameStateRepository;
+  final QuestRepository? _questRepository;
+  final GenerateStateFromChat? _generateState;
+  final LlmService? _llmService;
 
   @override
   State<ChatConversationScreen> createState() => _ChatConversationScreenState();
 }
 
 class _ChatConversationScreenState extends State<ChatConversationScreen> {
-  final ChatRepository _chatRepository = ChatRepository();
-  final SettingsRepository _settingsRepository = SettingsRepository();
-  final GameStateRepository _gameStateRepository = GameStateRepository();
-  final QuestRepository _questRepository = QuestRepository();
-  final GenerateStateFromChat _generateState = GenerateStateFromChat();
-  final LlmService _llmService = LlmService();
+  late final ChatRepository _chatRepository =
+      widget._chatRepository ?? ChatRepository();
+  late final SettingsRepository _settingsRepository =
+      widget._settingsRepository ?? SettingsRepository();
+  late final GameStateRepository _gameStateRepository =
+      widget._gameStateRepository ?? GameStateRepository();
+  late final QuestRepository _questRepository =
+      widget._questRepository ?? QuestRepository();
+  late final GenerateStateFromChat _generateState =
+      widget._generateState ?? GenerateStateFromChat();
+  late final LlmService _llmService = widget._llmService ?? LlmService();
 
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -40,6 +63,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   bool _sending = false;
   String _phaseLabel = 'Unknown';
   List<String> _activeQuestTitles = [];
+  String? _loadError;
 
   @override
   void initState() {
@@ -48,18 +72,35 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Future<void> _refresh() async {
-    final messages =
-        await _chatRepository.getMessagesForConversation(widget.conversationId);
-    final latestState = await _gameStateRepository.getLatest();
-    final activeQuests = await _questRepository.getActive();
-    if (!mounted) return;
     setState(() {
-      _messages = messages;
-      _loading = false;
-      _phaseLabel = latestState?.phase ?? 'Unknown';
-      _activeQuestTitles = activeQuests.map((quest) => quest.title).toList();
+      _loading = true;
+      _loadError = null;
     });
-    _scrollToBottom();
+    try {
+      final messages = await _chatRepository
+          .getMessagesForConversation(widget.conversationId);
+      final latestState = await _gameStateRepository.getLatest();
+      final activeQuests = await _questRepository.getActive();
+      if (!mounted) return;
+      setState(() {
+        _messages = messages;
+        _phaseLabel = latestState?.phase ?? 'Unknown';
+        _activeQuestTitles = activeQuests.map((quest) => quest.title).toList();
+      });
+      _scrollToBottom();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load conversation.';
+      });
+      debugPrint('ChatConversationScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -207,36 +248,41 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isUser = message.role == 'user';
-                      return Align(
-                        alignment: isUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.all(12),
-                          constraints: const BoxConstraints(maxWidth: 280),
-                          decoration: BoxDecoration(
-                            color: isUser
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .secondaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(message.content),
-                        ),
-                      );
-                    },
-                  ),
+                : _loadError != null
+                    ? LoadErrorView(
+                        message: _loadError!,
+                        onRetry: _refresh,
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          final isUser = message.role == 'user';
+                          return Align(
+                            alignment: isUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.all(12),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              decoration: BoxDecoration(
+                                color: isUser
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(message.content),
+                            ),
+                          );
+                        },
+                      ),
           ),
           Padding(
             padding: const EdgeInsets.all(12),

@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/quest.dart';
 import '../../../data/repositories/quest_repository.dart';
 
 class QuestLogScreen extends StatefulWidget {
-  const QuestLogScreen({super.key});
+  const QuestLogScreen({
+    super.key,
+    QuestRepository? questRepository,
+  }) : _questRepository = questRepository;
+
+  final QuestRepository? _questRepository;
 
   @override
   State<QuestLogScreen> createState() => _QuestLogScreenState();
 }
 
 class _QuestLogScreenState extends State<QuestLogScreen> {
-  final QuestRepository _questRepository = QuestRepository();
+  late final QuestRepository _questRepository =
+      widget._questRepository ?? QuestRepository();
 
   List<Quest> _quests = [];
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -23,12 +31,29 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
   }
 
   Future<void> _loadQuests() async {
-    final quests = await _questRepository.getAll();
-    if (!mounted) return;
     setState(() {
-      _quests = quests;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final quests = await _questRepository.getAll();
+      if (!mounted) return;
+      setState(() {
+        _quests = quests;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load quests.';
+      });
+      debugPrint('QuestLogScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Future<void> _createOrEditQuest({Quest? quest}) async {
@@ -40,7 +65,8 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
         TextEditingController(text: quest?.domain ?? 'other');
     final difficultyController =
         TextEditingController(text: quest?.difficulty.toString() ?? '1');
-    final xpController = TextEditingController(text: quest?.xp.toString() ?? '0');
+    final xpController =
+        TextEditingController(text: quest?.xp.toString() ?? '0');
     final statusController =
         TextEditingController(text: quest?.status ?? 'active');
     final stepsController = TextEditingController(
@@ -64,7 +90,8 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
               ),
               TextField(
                 controller: typeController,
-                decoration: const InputDecoration(labelText: 'Type (main|side|tutorial)'),
+                decoration: const InputDecoration(
+                    labelText: 'Type (main|side|tutorial)'),
               ),
               TextField(
                 controller: domainController,
@@ -72,7 +99,8 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
               ),
               TextField(
                 controller: difficultyController,
-                decoration: const InputDecoration(labelText: 'Difficulty (1-5)'),
+                decoration:
+                    const InputDecoration(labelText: 'Difficulty (1-5)'),
                 keyboardType: TextInputType.number,
               ),
               TextField(
@@ -173,75 +201,83 @@ class _QuestLogScreenState extends State<QuestLogScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _quests.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No quests yet. Add one to start tracking progress.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+          : _loadError != null
+              ? LoadErrorView(
+                  message: _loadError!,
+                  onRetry: _loadQuests,
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _quests.length,
-                  itemBuilder: (context, index) {
-                    final quest = _quests[index];
-                    return Card(
+              : _quests.isEmpty
+                  ? const Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    quest.title,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => _createOrEditQuest(quest: quest),
-                                  icon: const Icon(Icons.edit),
-                                ),
-                                IconButton(
-                                  onPressed: () => _toggleStatus(quest),
-                                  icon: Icon(
-                                    quest.status == 'completed'
-                                        ? Icons.undo
-                                        : Icons.check_circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text('${quest.type} - ${quest.domain}'),
-                            Text('Difficulty ${quest.difficulty} - XP ${quest.xp}'),
-                            if (quest.description.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(quest.description),
-                              ),
-                            const SizedBox(height: 8),
-                            ...quest.steps.asMap().entries.map(
-                                  (entry) => CheckboxListTile(
-                                    value: entry.value.done,
-                                    onChanged: (_) => _toggleStep(quest, entry.key),
-                                    title: Text(entry.value.title),
-                                    controlAffinity:
-                                        ListTileControlAffinity.leading,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                          ],
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'No quests yet. Add one to start tracking progress.',
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _quests.length,
+                      itemBuilder: (context, index) {
+                        final quest = _quests[index];
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        quest.title,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _createOrEditQuest(quest: quest),
+                                      icon: const Icon(Icons.edit),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => _toggleStatus(quest),
+                                      icon: Icon(
+                                        quest.status == 'completed'
+                                            ? Icons.undo
+                                            : Icons.check_circle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text('${quest.type} - ${quest.domain}'),
+                                Text(
+                                    'Difficulty ${quest.difficulty} - XP ${quest.xp}'),
+                                if (quest.description.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(quest.description),
+                                  ),
+                                const SizedBox(height: 8),
+                                ...quest.steps.asMap().entries.map(
+                                      (entry) => CheckboxListTile(
+                                        value: entry.value.done,
+                                        onChanged: (_) =>
+                                            _toggleStep(quest, entry.key),
+                                        title: Text(entry.value.title),
+                                        controlAffinity:
+                                            ListTileControlAffinity.leading,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _createOrEditQuest(),
         child: const Icon(Icons.add),

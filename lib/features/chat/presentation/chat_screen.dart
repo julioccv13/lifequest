@@ -1,24 +1,36 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/conversation.dart';
 import '../../../data/repositories/chat_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 import 'chat_conversation_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({
+    super.key,
+    ChatRepository? chatRepository,
+    SettingsRepository? settingsRepository,
+  })  : _chatRepository = chatRepository,
+        _settingsRepository = settingsRepository;
+
+  final ChatRepository? _chatRepository;
+  final SettingsRepository? _settingsRepository;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final ChatRepository _chatRepository = ChatRepository();
-  final SettingsRepository _settingsRepository = SettingsRepository();
+  late final ChatRepository _chatRepository =
+      widget._chatRepository ?? ChatRepository();
+  late final SettingsRepository _settingsRepository =
+      widget._settingsRepository ?? SettingsRepository();
   final TextEditingController _titleController = TextEditingController();
 
   List<Conversation> _conversations = [];
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -27,12 +39,29 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadConversations() async {
-    final conversations = await _chatRepository.getConversations();
-    if (!mounted) return;
     setState(() {
-      _conversations = conversations;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final conversations = await _chatRepository.getConversations();
+      if (!mounted) return;
+      setState(() {
+        _conversations = conversations;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load conversations.';
+      });
+      debugPrint('ChatScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Future<void> _createConversation() async {
@@ -71,28 +100,34 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(title: const Text('Chat')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _conversations.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No conversations yet. Create one to start chatting with LifeQuest AI.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+          : _loadError != null
+              ? LoadErrorView(
+                  message: _loadError!,
+                  onRetry: _loadConversations,
                 )
-              : ListView.builder(
-                  itemCount: _conversations.length,
-                  itemBuilder: (context, index) {
-                    final conversation = _conversations[index];
-                    return ListTile(
-                      title: Text(conversation.title ?? 'Conversation'),
-                      subtitle: Text(conversation.createdAt.toLocal().toString()),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _openConversation(conversation),
-                    );
-                  },
-                ),
+              : _conversations.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'No conversations yet. Create one to start chatting with LifeQuest AI.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _conversations.length,
+                      itemBuilder: (context, index) {
+                        final conversation = _conversations[index];
+                        return ListTile(
+                          title: Text(conversation.title ?? 'Conversation'),
+                          subtitle:
+                              Text(conversation.createdAt.toLocal().toString()),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _openConversation(conversation),
+                        );
+                      },
+                    ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await showDialog<void>(

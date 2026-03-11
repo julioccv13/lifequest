@@ -4,11 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifequest/app/lifequest_app.dart';
 import 'package:lifequest/core/services/database_service.dart';
 import 'package:lifequest/data/models/app_settings.dart';
+import 'package:lifequest/data/models/checkin.dart';
+import 'package:lifequest/data/models/conversation.dart';
+import 'package:lifequest/data/models/game_state_daily.dart';
+import 'package:lifequest/data/models/message.dart';
 import 'package:lifequest/data/models/quest.dart';
+import 'package:lifequest/data/repositories/checkin_repository.dart';
 import 'package:lifequest/data/repositories/chat_repository.dart';
+import 'package:lifequest/data/repositories/game_state_repository.dart';
 import 'package:lifequest/data/repositories/quest_repository.dart';
 import 'package:lifequest/data/repositories/settings_repository.dart';
+import 'package:lifequest/features/chat/presentation/chat_conversation_screen.dart';
 import 'package:lifequest/features/chat/presentation/chat_screen.dart';
+import 'package:lifequest/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:lifequest/features/insights/presentation/insights_screen.dart';
 import 'package:lifequest/features/quests/presentation/quest_log_screen.dart';
 import 'package:lifequest/features/settings/presentation/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,11 +60,11 @@ void main() {
     databaseFactory = databaseFactoryFfi;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, (methodCall) async {
-          if (methodCall.method == 'getApplicationDocumentsDirectory') {
-            return '/tmp/lifequest_test';
-          }
-          return null;
-        });
+      if (methodCall.method == 'getApplicationDocumentsDirectory') {
+        return '/tmp/lifequest_test';
+      }
+      return null;
+    });
   });
 
   setUp(() async {
@@ -80,7 +89,8 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
   });
 
-  testWidgets('chat screen renders creation controls', (WidgetTester tester) async {
+  testWidgets('chat screen renders creation controls',
+      (WidgetTester tester) async {
     await _pumpScreen(tester, const ChatScreen());
     await _pumpUntilFound(tester, find.byType(FloatingActionButton));
 
@@ -98,17 +108,126 @@ void main() {
     expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 
-  testWidgets('settings screen renders main actions', (WidgetTester tester) async {
+  testWidgets('settings screen renders main actions',
+      (WidgetTester tester) async {
     await _pumpScreen(tester, const SettingsScreen());
     await _pumpUntilFound(tester, find.text('Settings'));
 
     expect(find.text('Settings'), findsOneWidget);
   });
 
+  testWidgets('chat screen shows error and allows retry', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      ChatScreen(
+        chatRepository: _FlakyChatRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load conversations.'));
+
+    expect(find.text('Unable to load conversations.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    await _pumpUntilFound(
+      tester,
+      find.text(
+        'No conversations yet. Create one to start chatting with LifeQuest AI.',
+      ),
+    );
+    expect(
+      find.text(
+        'No conversations yet. Create one to start chatting with LifeQuest AI.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('dashboard screen shows error state when load fails', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      DashboardScreen(
+        gameStateRepository: _ThrowingGameStateRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load dashboard data.'));
+
+    expect(find.text('Unable to load dashboard data.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('quest log screen shows error state when load fails', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      QuestLogScreen(
+        questRepository: _ThrowingQuestRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load quests.'));
+
+    expect(find.text('Unable to load quests.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('insights screen shows error state when load fails', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      InsightsScreen(
+        checkinRepository: _ThrowingCheckinRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load insights.'));
+
+    expect(find.text('Unable to load insights.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('settings screen shows error state when load fails', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      SettingsScreen(
+        settingsRepository: _ThrowingSettingsRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load settings.'));
+
+    expect(find.text('Unable to load settings.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets('conversation screen shows error state when load fails', (
+    WidgetTester tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      ChatConversationScreen(
+        conversationId: 'c-1',
+        title: 'Test',
+        chatRepository: _ThrowingChatRepository(),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('Unable to load conversation.'));
+
+    expect(find.text('Unable to load conversation.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
   test('chat repository stores conversations and messages', () async {
     final repository = ChatRepository();
 
-    final conversation = await repository.createConversation(title: 'Daily Planning');
+    final conversation =
+        await repository.createConversation(title: 'Daily Planning');
     await repository.addMessage(
       conversationId: conversation.id,
       role: 'user',
@@ -116,7 +235,8 @@ void main() {
     );
 
     final conversations = await repository.getConversations();
-    final messages = await repository.getMessagesForConversation(conversation.id);
+    final messages =
+        await repository.getMessagesForConversation(conversation.id);
 
     expect(conversations.map((item) => item.title), contains('Daily Planning'));
     expect(messages, hasLength(1));
@@ -174,4 +294,58 @@ void main() {
     expect(saved.llmApiKey, 'secret-key');
     expect(saved.timezone, 'UTC');
   });
+}
+
+class _ThrowingChatRepository extends ChatRepository {
+  @override
+  Future<List<Conversation>> getConversations() async {
+    throw Exception('chat load failed');
+  }
+
+  @override
+  Future<List<Message>> getMessagesForConversation(
+      String conversationId) async {
+    throw Exception('conversation load failed');
+  }
+}
+
+class _FlakyChatRepository extends ChatRepository {
+  var _calls = 0;
+
+  @override
+  Future<List<Conversation>> getConversations() async {
+    _calls += 1;
+    if (_calls == 1) {
+      throw Exception('first load failed');
+    }
+    return <Conversation>[];
+  }
+}
+
+class _ThrowingGameStateRepository extends GameStateRepository {
+  @override
+  Future<GameStateDaily?> getByDate(String date) async {
+    throw Exception('dashboard load failed');
+  }
+}
+
+class _ThrowingQuestRepository extends QuestRepository {
+  @override
+  Future<List<Quest>> getAll() async {
+    throw Exception('quest load failed');
+  }
+}
+
+class _ThrowingCheckinRepository extends CheckinRepository {
+  @override
+  Future<List<Checkin>> getAll() async {
+    throw Exception('insights load failed');
+  }
+}
+
+class _ThrowingSettingsRepository extends SettingsRepository {
+  @override
+  Future<AppSettings> getSettings() async {
+    throw Exception('settings load failed');
+  }
 }

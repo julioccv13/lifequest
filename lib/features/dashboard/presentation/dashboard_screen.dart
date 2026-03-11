@@ -3,21 +3,29 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/game_state_daily.dart';
 import '../../../data/repositories/game_state_repository.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({
+    super.key,
+    GameStateRepository? gameStateRepository,
+  }) : _gameStateRepository = gameStateRepository;
+
+  final GameStateRepository? _gameStateRepository;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final GameStateRepository _gameStateRepository = GameStateRepository();
+  late final GameStateRepository _gameStateRepository =
+      widget._gameStateRepository ?? GameStateRepository();
 
   GameStateDaily? _state;
   bool _loading = true;
+  String? _loadError;
 
   final TextEditingController _phaseController = TextEditingController();
   final TextEditingController _narrativeController = TextEditingController();
@@ -38,14 +46,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadState() async {
-    final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final state = await _gameStateRepository.getByDate(date);
-    if (!mounted) return;
     setState(() {
-      _state = state;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
-    _syncControllers(state);
+    final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      final state = await _gameStateRepository.getByDate(date);
+      if (!mounted) return;
+      setState(() {
+        _state = state;
+      });
+      _syncControllers(state);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load dashboard data.';
+      });
+      debugPrint('DashboardScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   void _syncControllers(GameStateDaily? state) {
@@ -80,27 +105,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         phase: _phaseController.text.trim().isEmpty
             ? null
             : _phaseController.text.trim(),
-        characterJson: (_decodeJson(_characterController.text)
-                as Map<String, Object?>?) ??
-            {},
+        characterJson:
+            (_decodeJson(_characterController.text) as Map<String, Object?>?) ??
+                {},
         statsJson:
             (_decodeJson(_statsController.text) as Map<String, Object?>?) ?? {},
-        mainQuestJson: (_decodeJson(_mainQuestController.text)
-                as Map<String, Object?>?) ??
-            {},
+        mainQuestJson:
+            (_decodeJson(_mainQuestController.text) as Map<String, Object?>?) ??
+                {},
         sideQuestsJson:
             (_decodeJson(_sideQuestsController.text) as List?) ?? [],
         rulesJson: (_decodeJson(_rulesController.text) as List?) ?? [],
         rewardsJson: (_decodeJson(_rewardsController.text) as List?) ?? [],
-        tutorialJson: (_decodeJson(_tutorialController.text)
-                as Map<String, Object?>?) ??
-            {},
-        feedbackJson: (_decodeJson(_feedbackController.text)
-                as Map<String, Object?>?) ??
-            {},
-        questLogJson: (_decodeJson(_questLogController.text)
-                as Map<String, Object?>?) ??
-            {},
+        tutorialJson:
+            (_decodeJson(_tutorialController.text) as Map<String, Object?>?) ??
+                {},
+        feedbackJson:
+            (_decodeJson(_feedbackController.text) as Map<String, Object?>?) ??
+                {},
+        questLogJson:
+            (_decodeJson(_questLogController.text) as Map<String, Object?>?) ??
+                {},
         narrativeSummary: _narrativeController.text.trim().isEmpty
             ? null
             : _narrativeController.text.trim(),
@@ -147,47 +172,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                TextField(
-                  controller: _phaseController,
-                  decoration: const InputDecoration(
-                    labelText: 'Life phase',
-                  ),
+          : _loadError != null
+              ? LoadErrorView(
+                  message: _loadError!,
+                  onRetry: _loadState,
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    TextField(
+                      controller: _phaseController,
+                      decoration: const InputDecoration(
+                        labelText: 'Life phase',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _narrativeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Narrative summary',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 12),
+                    _JsonBlock(
+                      label: 'Character assessment + evidence',
+                      controller: _characterController,
+                    ),
+                    _JsonBlock(label: 'Stats', controller: _statsController),
+                    _JsonBlock(
+                        label: 'Main quest', controller: _mainQuestController),
+                    _JsonBlock(
+                      label: 'Side quests',
+                      controller: _sideQuestsController,
+                    ),
+                    _JsonBlock(label: 'Rules', controller: _rulesController),
+                    _JsonBlock(
+                        label: 'Rewards', controller: _rewardsController),
+                    _JsonBlock(
+                        label: 'Tutorial plan',
+                        controller: _tutorialController),
+                    _JsonBlock(
+                        label: 'Feedback system',
+                        controller: _feedbackController),
+                    _JsonBlock(
+                        label: 'Quest log update',
+                        controller: _questLogController),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _saveState,
+                      icon: const Icon(Icons.save),
+                      label: Text(_state == null ? 'Save' : 'Update'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _narrativeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Narrative summary',
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                _JsonBlock(
-                  label: 'Character assessment + evidence',
-                  controller: _characterController,
-                ),
-                _JsonBlock(label: 'Stats', controller: _statsController),
-                _JsonBlock(label: 'Main quest', controller: _mainQuestController),
-                _JsonBlock(
-                  label: 'Side quests',
-                  controller: _sideQuestsController,
-                ),
-                _JsonBlock(label: 'Rules', controller: _rulesController),
-                _JsonBlock(label: 'Rewards', controller: _rewardsController),
-                _JsonBlock(label: 'Tutorial plan', controller: _tutorialController),
-                _JsonBlock(label: 'Feedback system', controller: _feedbackController),
-                _JsonBlock(label: 'Quest log update', controller: _questLogController),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _saveState,
-                  icon: const Icon(Icons.save),
-                  label: Text(_state == null ? 'Save' : 'Update'),
-                ),
-              ],
-            ),
     );
   }
 }

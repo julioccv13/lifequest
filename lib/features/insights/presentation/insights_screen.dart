@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/checkin.dart';
 import '../../../data/models/game_state_daily.dart';
 import '../../../data/models/quest.dart';
@@ -10,23 +11,42 @@ import '../../../data/repositories/quest_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 
 class InsightsScreen extends StatefulWidget {
-  const InsightsScreen({super.key});
+  const InsightsScreen({
+    super.key,
+    CheckinRepository? checkinRepository,
+    QuestRepository? questRepository,
+    GameStateRepository? gameStateRepository,
+    SettingsRepository? settingsRepository,
+  })  : _checkinRepository = checkinRepository,
+        _questRepository = questRepository,
+        _gameStateRepository = gameStateRepository,
+        _settingsRepository = settingsRepository;
+
+  final CheckinRepository? _checkinRepository;
+  final QuestRepository? _questRepository;
+  final GameStateRepository? _gameStateRepository;
+  final SettingsRepository? _settingsRepository;
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
 class _InsightsScreenState extends State<InsightsScreen> {
-  final CheckinRepository _checkinRepository = CheckinRepository();
-  final QuestRepository _questRepository = QuestRepository();
-  final GameStateRepository _gameStateRepository = GameStateRepository();
-  final SettingsRepository _settingsRepository = SettingsRepository();
+  late final CheckinRepository _checkinRepository =
+      widget._checkinRepository ?? CheckinRepository();
+  late final QuestRepository _questRepository =
+      widget._questRepository ?? QuestRepository();
+  late final GameStateRepository _gameStateRepository =
+      widget._gameStateRepository ?? GameStateRepository();
+  late final SettingsRepository _settingsRepository =
+      widget._settingsRepository ?? SettingsRepository();
 
   List<Checkin> _checkins = [];
   List<Quest> _quests = [];
   GameStateDaily? _latestState;
   bool _loading = true;
   bool _llmEnabled = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -35,18 +55,35 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   Future<void> _loadData() async {
-    final checkins = await _checkinRepository.getAll();
-    final quests = await _questRepository.getAll();
-    final state = await _gameStateRepository.getLatest();
-    final settings = await _settingsRepository.getSettings();
-    if (!mounted) return;
     setState(() {
-      _checkins = checkins;
-      _quests = quests;
-      _latestState = state;
-      _llmEnabled = settings.llmEnabled;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final checkins = await _checkinRepository.getAll();
+      final quests = await _questRepository.getAll();
+      final state = await _gameStateRepository.getLatest();
+      final settings = await _settingsRepository.getSettings();
+      if (!mounted) return;
+      setState(() {
+        _checkins = checkins;
+        _quests = quests;
+        _latestState = state;
+        _llmEnabled = settings.llmEnabled;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load insights.';
+      });
+      debugPrint('InsightsScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   List<Checkin> _checkinsInDays(int days) {
@@ -109,87 +146,94 @@ class _InsightsScreenState extends State<InsightsScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Weekly summary',
-                  style: Theme.of(context).textTheme.titleMedium,
+          : _loadError != null
+              ? LoadErrorView(
+                  message: _loadError!,
+                  onRetry: _loadData,
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      'Weekly summary',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    _SummaryRow(
+                      label: 'Completed quests',
+                      value: _completedQuestsCount(7).toDouble(),
+                    ),
+                    _SummaryRow(
+                        label: 'Check-in streak',
+                        value: _checkinStreak().toDouble()),
+                    _SummaryRow(
+                      label: 'Mood',
+                      value: _average(weekly, (item) => item.mood),
+                    ),
+                    _SummaryRow(
+                      label: 'Energy',
+                      value: _average(weekly, (item) => item.energy),
+                    ),
+                    _SummaryRow(
+                      label: 'Focus',
+                      value: _average(weekly, (item) => item.focus),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Monthly summary',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    _SummaryRow(
+                      label: 'Completed quests',
+                      value: _completedQuestsCount(30).toDouble(),
+                    ),
+                    _SummaryRow(
+                      label: 'Mood',
+                      value: _average(monthly, (item) => item.mood),
+                    ),
+                    _SummaryRow(
+                      label: 'Energy',
+                      value: _average(monthly, (item) => item.energy),
+                    ),
+                    _SummaryRow(
+                      label: 'Focus',
+                      value: _average(monthly, (item) => item.focus),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Trends',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    _ChartBlock(
+                      title: 'Mood',
+                      checkins: monthly,
+                      selector: (item) => item.mood,
+                    ),
+                    _ChartBlock(
+                      title: 'Energy',
+                      checkins: monthly,
+                      selector: (item) => item.energy,
+                    ),
+                    _ChartBlock(
+                      title: 'Focus',
+                      checkins: monthly,
+                      selector: (item) => item.focus,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Narrative recap',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _llmEnabled && _latestState?.narrativeSummary != null
+                          ? _latestState!.narrativeSummary!
+                          : _autoRecap(),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                _SummaryRow(
-                  label: 'Completed quests',
-                  value: _completedQuestsCount(7).toDouble(),
-                ),
-                _SummaryRow(label: 'Check-in streak', value: _checkinStreak().toDouble()),
-                _SummaryRow(
-                  label: 'Mood',
-                  value: _average(weekly, (item) => item.mood),
-                ),
-                _SummaryRow(
-                  label: 'Energy',
-                  value: _average(weekly, (item) => item.energy),
-                ),
-                _SummaryRow(
-                  label: 'Focus',
-                  value: _average(weekly, (item) => item.focus),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Monthly summary',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                _SummaryRow(
-                  label: 'Completed quests',
-                  value: _completedQuestsCount(30).toDouble(),
-                ),
-                _SummaryRow(
-                  label: 'Mood',
-                  value: _average(monthly, (item) => item.mood),
-                ),
-                _SummaryRow(
-                  label: 'Energy',
-                  value: _average(monthly, (item) => item.energy),
-                ),
-                _SummaryRow(
-                  label: 'Focus',
-                  value: _average(monthly, (item) => item.focus),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Trends',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                _ChartBlock(
-                  title: 'Mood',
-                  checkins: monthly,
-                  selector: (item) => item.mood,
-                ),
-                _ChartBlock(
-                  title: 'Energy',
-                  checkins: monthly,
-                  selector: (item) => item.energy,
-                ),
-                _ChartBlock(
-                  title: 'Focus',
-                  checkins: monthly,
-                  selector: (item) => item.focus,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Narrative recap',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _llmEnabled && _latestState?.narrativeSummary != null
-                      ? _latestState!.narrativeSummary!
-                      : _autoRecap(),
-                ),
-              ],
-            ),
     );
   }
 }

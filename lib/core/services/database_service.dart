@@ -23,6 +23,29 @@ class DatabaseService {
       databaseFactory = databaseFactoryFfiWeb;
     }
     final path = kIsWeb ? 'lifequest_web.db' : await _nativeDbPath();
+    try {
+      return await _openDatabase(path);
+    } catch (error) {
+      if (!kIsWeb) {
+        throw DatabaseInitializationException(
+          path: path,
+          error: error,
+        );
+      }
+      try {
+        await deleteDatabase(path);
+        return await _openDatabase(path);
+      } catch (retryError) {
+        throw DatabaseInitializationException(
+          path: path,
+          error: retryError,
+          initialError: error,
+        );
+      }
+    }
+  }
+
+  Future<Database> _openDatabase(String path) {
     return openDatabase(
       path,
       version: 2,
@@ -131,5 +154,25 @@ class DatabaseService {
     if (_db == null) return;
     await _db!.close();
     _db = null;
+  }
+}
+
+class DatabaseInitializationException implements Exception {
+  DatabaseInitializationException({
+    required this.path,
+    required this.error,
+    this.initialError,
+  });
+
+  final String path;
+  final Object error;
+  final Object? initialError;
+
+  @override
+  String toString() {
+    final recoveredFrom =
+        initialError == null ? '' : ' Initial error: $initialError.';
+    return 'Failed to initialize database at "$path".$recoveredFrom'
+        ' Root error: $error';
   }
 }

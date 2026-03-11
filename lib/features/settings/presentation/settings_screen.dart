@@ -10,19 +10,30 @@ import '../../../core/platform/file_download_stub.dart'
 import '../../../core/platform/local_file_io_stub.dart'
     if (dart.library.io) '../../../core/platform/local_file_io_io.dart';
 import '../../../core/services/database_service.dart';
+import '../../../core/widgets/load_error_view.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../data/repositories/settings_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    super.key,
+    SettingsRepository? settingsRepository,
+    DatabaseService? databaseService,
+  })  : _settingsRepository = settingsRepository,
+        _databaseService = databaseService;
+
+  final SettingsRepository? _settingsRepository;
+  final DatabaseService? _databaseService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final SettingsRepository _settingsRepository = SettingsRepository();
-  final DatabaseService _databaseService = DatabaseService.instance;
+  late final SettingsRepository _settingsRepository =
+      widget._settingsRepository ?? SettingsRepository();
+  late final DatabaseService _databaseService =
+      widget._databaseService ?? DatabaseService.instance;
 
   final TextEditingController _coachPromptController = TextEditingController();
   final TextEditingController _extractPromptController =
@@ -34,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _llmEnabled = false;
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -42,19 +54,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final settings = await _settingsRepository.getSettings();
-    if (!mounted) return;
-    _coachPromptController.text = settings.coachPrompt;
-    _extractPromptController.text = settings.extractionPrompt;
-    _schemaController.text = const JsonEncoder.withIndent('  ')
-        .convert(settings.schema);
-    _endpointController.text = settings.llmEndpoint ?? '';
-    _apiKeyController.text = settings.llmApiKey ?? '';
-    _timezoneController.text = settings.timezone;
     setState(() {
-      _llmEnabled = settings.llmEnabled;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final settings = await _settingsRepository.getSettings();
+      if (!mounted) return;
+      _coachPromptController.text = settings.coachPrompt;
+      _extractPromptController.text = settings.extractionPrompt;
+      _schemaController.text =
+          const JsonEncoder.withIndent('  ').convert(settings.schema);
+      _endpointController.text = settings.llmEndpoint ?? '';
+      _apiKeyController.text = settings.llmApiKey ?? '';
+      _timezoneController.text = settings.timezone;
+      setState(() {
+        _llmEnabled = settings.llmEnabled;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load settings.';
+      });
+      debugPrint('SettingsScreen load error: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -258,85 +287,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                TextField(
-                  controller: _coachPromptController,
-                  maxLines: 6,
-                  decoration: const InputDecoration(
-                    labelText: 'Coach prompt',
-                    border: OutlineInputBorder(),
-                  ),
+          : _loadError != null
+              ? LoadErrorView(
+                  message: _loadError!,
+                  onRetry: _loadSettings,
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    TextField(
+                      controller: _coachPromptController,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'Coach prompt',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _extractPromptController,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'Extraction prompt',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _schemaController,
+                      maxLines: 10,
+                      decoration: const InputDecoration(
+                        labelText: 'Schema JSON',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      title: const Text('Enable LLM'),
+                      value: _llmEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _llmEnabled = value;
+                        });
+                      },
+                    ),
+                    TextField(
+                      controller: _endpointController,
+                      decoration: const InputDecoration(
+                        labelText: 'LLM endpoint URL',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _apiKeyController,
+                      decoration: const InputDecoration(
+                        labelText: 'API key (stored locally; not fully secure)',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _timezoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Timezone (device default)',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _saveSettings,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Save settings'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _exportData,
+                      icon: const Icon(Icons.file_download),
+                      label: const Text('Export data to JSON'),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _importData,
+                      icon: const Icon(Icons.file_upload),
+                      label: const Text('Import data from JSON'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _extractPromptController,
-                  maxLines: 6,
-                  decoration: const InputDecoration(
-                    labelText: 'Extraction prompt',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _schemaController,
-                  maxLines: 10,
-                  decoration: const InputDecoration(
-                    labelText: 'Schema JSON',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text('Enable LLM'),
-                  value: _llmEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _llmEnabled = value;
-                    });
-                  },
-                ),
-                TextField(
-                  controller: _endpointController,
-                  decoration: const InputDecoration(
-                    labelText: 'LLM endpoint URL',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _apiKeyController,
-                  decoration: const InputDecoration(
-                    labelText: 'API key (stored locally; not fully secure)',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _timezoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Timezone (device default)',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _saveSettings,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save settings'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _exportData,
-                  icon: const Icon(Icons.file_download),
-                  label: const Text('Export data to JSON'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _importData,
-                  icon: const Icon(Icons.file_upload),
-                  label: const Text('Import data from JSON'),
-                ),
-              ],
-            ),
     );
   }
 }

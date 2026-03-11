@@ -8,10 +8,6 @@ The deployed web app is available at:
 
 - https://julioccv13.github.io/lifequest/
 
-## Current screenshot
-
-![LifeQuest web screenshot (March 11, 2026)](docs/screenshots/lifequest-web-2026-03-11.png)
-
 ## Project layout
 
 ```text
