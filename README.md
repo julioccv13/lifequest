@@ -2,6 +2,12 @@
 
 Flutter app for an offline-first life coaching RPG.
 
+## App URL
+
+The deployed web app is available at:
+
+- https://julioccv13.github.io/lifequest/
+
 ## Project layout
 
 ```text
